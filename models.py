@@ -31,3 +31,13 @@ class Session(Base):
     expires_at = Column(DateTime, nullable=False)
 
     user = relationship("User", back_populates="sessions")
+
+
+class LoginAttempt(Base):
+    __tablename__ = "login_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, nullable=False)
+    ip_address = Column(String, nullable=False)
+    success = Column(Boolean, nullable=False)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
