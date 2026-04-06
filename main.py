@@ -6,11 +6,19 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session as DBSession
 
-from auth import hash_password
+from datetime import datetime, timedelta, timezone
+
+from auth import (
+    SESSION_EXPIRY_HOURS,
+    create_jwt,
+    create_session_id,
+    hash_password,
+    verify_password,
+)
 from database import Base, SessionLocal, engine, get_db
-from middleware import generate_csrf_token, validate_csrf_token
-from models import User
-from schemas import UserCreate, UserResponse
+from middleware import generate_csrf_token, rate_limiter, validate_csrf_token
+from models import LoginAttempt, Session, User
+from schemas import LoginRequest, UserCreate, UserResponse
 
 
 @asynccontextmanager
@@ -92,6 +100,75 @@ async def signup(
     db.commit()
     db.refresh(new_user)
     return new_user
+
+
+@app.post("/api/login")
+async def login(
+    login_data: LoginRequest,
+    request: Request,
+    response: Response,
+    db: DBSession = Depends(get_db),
+):
+    csrf_cookie = request.cookies.get("csrf_token")
+    csrf_header = request.headers.get("X-CSRF-Token")
+    if not validate_csrf_token(csrf_header, csrf_cookie):
+        raise HTTPException(status_code=403, detail="Token CSRF invalido")
+
+    client_ip = request.client.host
+
+    if rate_limiter.is_locked(client_ip):
+        remaining = rate_limiter.get_remaining_lockout(client_ip)
+        raise HTTPException(
+            status_code=429,
+            detail=f"Demasiados intentos. Intenta de nuevo en {remaining} segundos",
+        )
+
+    clean_email = bleach.clean(login_data.email).lower().strip()
+
+    user = db.query(User).filter(User.email == clean_email).first()
+    if not user or not verify_password(login_data.password, user.hashed_password):
+        rate_limiter.record_failure(client_ip)
+        db.add(
+            LoginAttempt(email=clean_email, ip_address=client_ip, success=False)
+        )
+        db.commit()
+        raise HTTPException(status_code=401, detail="Credenciales invalidas")
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Cuenta desactivada")
+
+    rate_limiter.record_success(client_ip)
+    db.add(LoginAttempt(email=clean_email, ip_address=client_ip, success=True))
+    db.commit()
+
+    if login_data.session_type == "cookie":
+        session_id = create_session_id()
+        new_session = Session(
+            session_id=session_id,
+            user_id=user.id,
+            expires_at=datetime.now(timezone.utc)
+            + timedelta(hours=SESSION_EXPIRY_HOURS),
+        )
+        db.add(new_session)
+        db.commit()
+
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            httponly=True,
+            secure=False,
+            samesite="lax",
+            max_age=SESSION_EXPIRY_HOURS * 3600,
+        )
+        return {"message": "Login exitoso", "auth_type": "cookie", "role": user.role}
+
+    token = create_jwt({"sub": user.id, "email": user.email, "role": user.role})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "auth_type": "jwt",
+        "role": user.role,
+    }
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
