@@ -23,6 +23,13 @@ from models import LoginAttempt, Session, User
 from schemas import LoginRequest, UserCreate, UserResponse
 
 
+def verify_csrf(request: Request):
+    csrf_cookie = request.cookies.get("csrf_token")
+    csrf_header = request.headers.get("X-CSRF-Token")
+    if not validate_csrf_token(csrf_header, csrf_cookie):
+        raise HTTPException(status_code=403, detail="Token CSRF invalido")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
@@ -82,10 +89,7 @@ async def get_csrf_token(response: Response):
 async def signup(
     user_data: UserCreate, request: Request, db: DBSession = Depends(get_db)
 ):
-    csrf_cookie = request.cookies.get("csrf_token")
-    csrf_header = request.headers.get("X-CSRF-Token")
-    if not validate_csrf_token(csrf_header, csrf_cookie):
-        raise HTTPException(status_code=403, detail="Token CSRF invalido")
+    verify_csrf(request)
 
     clean_email = bleach.clean(user_data.email).lower().strip()
 
@@ -111,10 +115,7 @@ async def login(
     response: Response,
     db: DBSession = Depends(get_db),
 ):
-    csrf_cookie = request.cookies.get("csrf_token")
-    csrf_header = request.headers.get("X-CSRF-Token")
-    if not validate_csrf_token(csrf_header, csrf_cookie):
-        raise HTTPException(status_code=403, detail="Token CSRF invalido")
+    verify_csrf(request)
 
     client_ip = request.client.host
 
@@ -219,10 +220,7 @@ async def delete_user(
     user: User = Depends(require_role("admin")),
     db: DBSession = Depends(get_db),
 ):
-    csrf_cookie = request.cookies.get("csrf_token")
-    csrf_header = request.headers.get("X-CSRF-Token")
-    if not validate_csrf_token(csrf_header, csrf_cookie):
-        raise HTTPException(status_code=403, detail="Token CSRF invalido")
+    verify_csrf(request)
 
     if user_id == user.id:
         raise HTTPException(

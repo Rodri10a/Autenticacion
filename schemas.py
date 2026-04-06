@@ -1,4 +1,3 @@
-import bleach
 from pydantic import BaseModel, EmailStr, field_validator
 
 
@@ -13,10 +12,6 @@ class UserCreate(BaseModel):
             raise ValueError("La contrasena debe tener al menos 8 caracteres")
         return v
 
-    @field_validator("email")
-    @classmethod
-    def sanitize_email(cls, v):
-        return bleach.clean(v)
 
 
 class UserResponse(BaseModel):
@@ -34,10 +29,3 @@ class LoginRequest(BaseModel):
     session_type: str = "cookie"
 
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
-class MessageResponse(BaseModel):
-    message: str
