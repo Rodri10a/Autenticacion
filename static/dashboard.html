@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PassPort - Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo">
+                <h1>PassPort</h1>
+                <p>Tu identidad digital segura</p>
+            </div>
+
+            <div id="alert" class="alert"></div>
+
+            <div class="auth-badge">
+                <span id="authBadge"></span>
+            </div>
+
+            <div class="user-info">
+                <div class="email" id="userEmail">Cargando...</div>
+                <div id="userRole" class="role"></div>
+            </div>
+
+            <div class="nav-links">
+                <button class="btn btn-secondary" id="adminBtn" style="display:none"
+                    onclick="window.location.href='/admin'">
+                    Panel Admin
+                </button>
+                <button class="btn btn-primary" onclick="logout()">Cerrar sesion</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function authFetch(url, options = {}) {
+            const token = localStorage.getItem('jwt_token');
+            if (token) {
+                options.headers = options.headers || {};
+                options.headers['Authorization'] = 'Bearer ' + token;
+            }
+            return fetch(url, { ...options, credentials: 'include' });
+        }
+
+        async function loadUser() {
+            try {
+                const res = await authFetch('/api/me');
+                if (!res.ok) {
+                    window.location.href = '/';
+                    return;
+                }
+                const user = await res.json();
+                document.getElementById('userEmail').textContent = user.email;
+
+                const roleEl = document.getElementById('userRole');
+                roleEl.textContent = user.role;
+                roleEl.className = 'role role-' + user.role;
+
+                if (user.role === 'admin') {
+                    document.getElementById('adminBtn').style.display = 'block';
+                }
+
+                const authType = localStorage.getItem('auth_type') || 'cookie';
+                document.getElementById('authBadge').textContent =
+                    authType === 'jwt' ? 'JWT Session' : 'Cookie Session';
+            } catch {
+                window.location.href = '/';
+            }
+        }
+
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('auth_type');
+            window.location.href = '/';
+        }
+
+        loadUser();
+    </script>
+</body>
+</html>
