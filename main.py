@@ -1,13 +1,16 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Response
+import bleach
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session as DBSession
 
 from auth import hash_password
-from database import Base, SessionLocal, engine
-from middleware import generate_csrf_token
+from database import Base, SessionLocal, engine, get_db
+from middleware import generate_csrf_token, validate_csrf_token
 from models import User
+from schemas import UserCreate, UserResponse
 
 
 @asynccontextmanager
@@ -63,6 +66,32 @@ async def get_csrf_token(response: Response):
         secure=False,
     )
     return {"csrf_token": token}
+
+
+@app.post("/api/signup", response_model=UserResponse)
+async def signup(
+    user_data: UserCreate, request: Request, db: DBSession = Depends(get_db)
+):
+    csrf_cookie = request.cookies.get("csrf_token")
+    csrf_header = request.headers.get("X-CSRF-Token")
+    if not validate_csrf_token(csrf_header, csrf_cookie):
+        raise HTTPException(status_code=403, detail="Token CSRF invalido")
+
+    clean_email = bleach.clean(user_data.email).lower().strip()
+
+    existing = db.query(User).filter(User.email == clean_email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="El email ya esta registrado")
+
+    new_user = User(
+        email=clean_email,
+        hashed_password=hash_password(user_data.password),
+        role="user",
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
