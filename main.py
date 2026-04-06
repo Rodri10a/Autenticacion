@@ -14,6 +14,7 @@ from auth import (
     create_session_id,
     get_current_user,
     hash_password,
+    require_role,
     verify_password,
 )
 from database import Base, SessionLocal, engine, get_db
@@ -192,6 +193,71 @@ async def logout(
 @app.get("/api/me", response_model=UserResponse)
 async def get_me(user: User = Depends(get_current_user)):
     return user
+
+
+@app.get("/api/admin/users")
+async def list_users(
+    user: User = Depends(require_role("admin")), db: DBSession = Depends(get_db)
+):
+    users = db.query(User).all()
+    return [
+        {
+            "id": u.id,
+            "email": u.email,
+            "role": u.role,
+            "is_active": u.is_active,
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+        }
+        for u in users
+    ]
+
+
+@app.delete("/api/admin/users/{user_id}")
+async def delete_user(
+    user_id: int,
+    request: Request,
+    user: User = Depends(require_role("admin")),
+    db: DBSession = Depends(get_db),
+):
+    csrf_cookie = request.cookies.get("csrf_token")
+    csrf_header = request.headers.get("X-CSRF-Token")
+    if not validate_csrf_token(csrf_header, csrf_cookie):
+        raise HTTPException(status_code=403, detail="Token CSRF invalido")
+
+    if user_id == user.id:
+        raise HTTPException(
+            status_code=400, detail="No podes eliminarte a vos mismo"
+        )
+
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    db.delete(target)
+    db.commit()
+    return {"message": f"Usuario {target.email} eliminado"}
+
+
+@app.get("/api/admin/login-attempts")
+async def get_login_attempts(
+    user: User = Depends(require_role("admin")), db: DBSession = Depends(get_db)
+):
+    attempts = (
+        db.query(LoginAttempt)
+        .order_by(LoginAttempt.timestamp.desc())
+        .limit(100)
+        .all()
+    )
+    return [
+        {
+            "id": a.id,
+            "email": a.email,
+            "ip_address": a.ip_address,
+            "success": a.success,
+            "timestamp": a.timestamp.isoformat() if a.timestamp else None,
+        }
+        for a in attempts
+    ]
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
