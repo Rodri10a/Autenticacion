@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PassPort - Login</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="logo">
+                <h1>PassPort</h1>
+                <p>Gestor de identidad digital seguro</p>
+            </div>
+
+            <div id="alert" class="alert"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required placeholder="tu@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="password">Contrasena</label>
+                    <input type="password" id="password" required placeholder="Min. 8 caracteres">
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de sesion</label>
+                    <div class="session-toggle">
+                        <input type="radio" name="session_type" id="cookie" value="cookie" checked>
+                        <label for="cookie">Cookie</label>
+                        <input type="radio" name="session_type" id="jwt" value="jwt">
+                        <label for="jwt">JWT</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Iniciar sesion</button>
+            </form>
+
+            <div class="link">
+                No tenes cuenta? <a href="/signup">Registrate</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let csrfToken = '';
+
+        async function loadCsrf() {
+            const res = await fetch('/api/csrf-token', { credentials: 'include' });
+            const data = await res.json();
+            csrfToken = data.csrf_token;
+        }
+
+        function showAlert(msg, type) {
+            const el = document.getElementById('alert');
+            el.textContent = msg;
+            el.className = 'alert alert-' + type;
+            el.style.display = 'block';
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const sessionType = document.querySelector('input[name="session_type"]:checked').value;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password, session_type: sessionType })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showAlert(data.detail || 'Error al iniciar sesion', 'error');
+                    await loadCsrf();
+                    return;
+                }
+
+                if (data.auth_type === 'jwt') {
+                    localStorage.setItem('jwt_token', data.access_token);
+                }
+                localStorage.setItem('auth_type', data.auth_type);
+
+                if (data.role === 'admin') {
+                    window.location.href = '/admin';
+                } else {
+                    window.location.href = '/dashboard';
+                }
+            } catch {
+                showAlert('Error de conexion', 'error');
+            }
+        });
+
+        loadCsrf();
+    </script>
+</body>
+</html>
