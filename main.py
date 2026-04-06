@@ -1,11 +1,12 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from auth import hash_password
 from database import Base, SessionLocal, engine
+from middleware import generate_csrf_token
 from models import User
 
 
@@ -49,6 +50,19 @@ async def dashboard_page():
 @app.get("/admin")
 async def admin_page():
     return FileResponse("static/admin.html")
+
+
+@app.get("/api/csrf-token")
+async def get_csrf_token(response: Response):
+    token = generate_csrf_token()
+    response.set_cookie(
+        key="csrf_token",
+        value=token,
+        httponly=False,
+        samesite="strict",
+        secure=False,
+    )
+    return {"csrf_token": token}
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
