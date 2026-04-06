@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
 from dotenv import load_dotenv
 from jose import JWTError, jwt
@@ -37,3 +38,7 @@ def decode_jwt(token: str) -> dict | None:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         return None
+
+
+def create_session_id() -> str:
+    return str(uuid4())
