@@ -85,3 +85,12 @@ async def get_current_user(
                 return user
 
     raise HTTPException(status_code=401, detail="No autenticado")
+
+
+def require_role(role: str):
+    async def role_checker(user: models.User = Depends(get_current_user)):
+        if user.role != role:
+            raise HTTPException(status_code=403, detail="Permisos insuficientes")
+        return user
+
+    return role_checker
