@@ -3,8 +3,13 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 from dotenv import load_dotenv
+from fastapi import Depends, HTTPException, Request
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from sqlalchemy.orm import Session as DBSession
+
+import models
+from database import get_db
 
 load_dotenv()
 
@@ -42,3 +47,41 @@ def decode_jwt(token: str) -> dict | None:
 
 def create_session_id() -> str:
     return str(uuid4())
+
+
+async def get_current_user(
+    request: Request, db: DBSession = Depends(get_db)
+) -> models.User:
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        payload = decode_jwt(token)
+        if payload:
+            user = (
+                db.query(models.User)
+                .filter(models.User.id == payload.get("sub"))
+                .first()
+            )
+            if user and user.is_active:
+                return user
+
+    session_id = request.cookies.get("session_id")
+    if session_id:
+        session = (
+            db.query(models.Session)
+            .filter(
+                models.Session.session_id == session_id,
+                models.Session.expires_at > datetime.now(timezone.utc),
+            )
+            .first()
+        )
+        if session:
+            user = (
+                db.query(models.User)
+                .filter(models.User.id == session.user_id)
+                .first()
+            )
+            if user and user.is_active:
+                return user
+
+    raise HTTPException(status_code=401, detail="No autenticado")
