@@ -17,3 +17,27 @@ class UserCreate(BaseModel):
     @classmethod
     def sanitize_email(cls, v):
         return bleach.clean(v)
+
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    role: str
+    is_active: bool
+
+    model_config = {"from_attributes": True}
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+    session_type: str = "cookie"
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class MessageResponse(BaseModel):
+    message: str
