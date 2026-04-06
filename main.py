@@ -12,6 +12,7 @@ from auth import (
     SESSION_EXPIRY_HOURS,
     create_jwt,
     create_session_id,
+    get_current_user,
     hash_password,
     verify_password,
 )
@@ -169,6 +170,28 @@ async def login(
         "auth_type": "jwt",
         "role": user.role,
     }
+
+
+@app.post("/api/logout")
+async def logout(
+    request: Request, response: Response, db: DBSession = Depends(get_db)
+):
+    session_id = request.cookies.get("session_id")
+    if session_id:
+        session = (
+            db.query(Session).filter(Session.session_id == session_id).first()
+        )
+        if session:
+            db.delete(session)
+            db.commit()
+
+    response.delete_cookie("session_id")
+    return {"message": "Sesion cerrada"}
+
+
+@app.get("/api/me", response_model=UserResponse)
+async def get_me(user: User = Depends(get_current_user)):
+    return user
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
