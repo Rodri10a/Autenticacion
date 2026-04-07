@@ -1,26 +1,15 @@
+import sqlite3
 from contextlib import asynccontextmanager
 
-import bleach
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy.orm import Session as DBSession
 
-from datetime import datetime, timedelta, timezone
-
-from auth import (
-    SESSION_EXPIRY_HOURS,
-    create_jwt,
-    create_session_id,
-    get_current_user,
-    hash_password,
-    require_role,
-    verify_password,
-)
-from database import Base, SessionLocal, engine, get_db
-from middleware import generate_csrf_token, rate_limiter, validate_csrf_token
-from models import LoginAttempt, Session, User
+from auth import SESSION_EXPIRY_HOURS, get_current_user, hash_password, require_role
+from database import DATABASE_PATH, get_db, init_db
+from middleware import generate_csrf_token, validate_csrf_token
 from schemas import LoginRequest, UserCreate, UserResponse
+from services import auth_service, user_service
 
 
 def verify_csrf(request: Request):
@@ -32,20 +21,20 @@ def verify_csrf(request: Request):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    db = SessionLocal()
+    init_db()
+    conn = sqlite3.connect(DATABASE_PATH)
     try:
-        admin = db.query(User).filter(User.role == "admin").first()
+        admin = conn.execute(
+            "SELECT id FROM users WHERE role = 'admin'"
+        ).fetchone()
         if not admin:
-            admin = User(
-                email="admin@passport.com",
-                hashed_password=hash_password("Admin123!"),
-                role="admin",
+            conn.execute(
+                "INSERT INTO users (email, hashed_password, role) VALUES (?, ?, ?)",
+                ("admin@passport.com", hash_password("Admin123!"), "admin"),
             )
-            db.add(admin)
-            db.commit()
+            conn.commit()
     finally:
-        db.close()
+        conn.close()
     yield
 
 
@@ -85,27 +74,11 @@ async def get_csrf_token(response: Response):
     return {"csrf_token": token}
 
 
-@app.post("/api/signup", response_model=UserResponse)
-async def signup(
-    user_data: UserCreate, request: Request, db: DBSession = Depends(get_db)
-):
+@app.post("/api/signup")
+async def signup(user_data: UserCreate, request: Request, db=Depends(get_db)):
     verify_csrf(request)
-
-    clean_email = bleach.clean(user_data.email).lower().strip()
-
-    existing = db.query(User).filter(User.email == clean_email).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="El email ya esta registrado")
-
-    new_user = User(
-        email=clean_email,
-        hashed_password=hash_password(user_data.password),
-        role="user",
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+    user = auth_service.signup(db, user_data.email, user_data.password)
+    return UserResponse(**user)
 
 
 @app.post("/api/login")
@@ -113,149 +86,63 @@ async def login(
     login_data: LoginRequest,
     request: Request,
     response: Response,
-    db: DBSession = Depends(get_db),
+    db=Depends(get_db),
 ):
     verify_csrf(request)
+    result = auth_service.login(
+        db,
+        login_data.email,
+        login_data.password,
+        login_data.session_type,
+        request.client.host,
+    )
 
-    client_ip = request.client.host
-
-    if rate_limiter.is_locked(client_ip):
-        remaining = rate_limiter.get_remaining_lockout(client_ip)
-        raise HTTPException(
-            status_code=429,
-            detail=f"Demasiados intentos. Intenta de nuevo en {remaining} segundos",
-        )
-
-    clean_email = bleach.clean(login_data.email).lower().strip()
-
-    user = db.query(User).filter(User.email == clean_email).first()
-    if not user or not verify_password(login_data.password, user.hashed_password):
-        rate_limiter.record_failure(client_ip)
-        db.add(
-            LoginAttempt(email=clean_email, ip_address=client_ip, success=False)
-        )
-        db.commit()
-        raise HTTPException(status_code=401, detail="Credenciales invalidas")
-
-    if not user.is_active:
-        raise HTTPException(status_code=403, detail="Cuenta desactivada")
-
-    rate_limiter.record_success(client_ip)
-    db.add(LoginAttempt(email=clean_email, ip_address=client_ip, success=True))
-    db.commit()
-
-    if login_data.session_type == "cookie":
-        session_id = create_session_id()
-        new_session = Session(
-            session_id=session_id,
-            user_id=user.id,
-            expires_at=datetime.now(timezone.utc)
-            + timedelta(hours=SESSION_EXPIRY_HOURS),
-        )
-        db.add(new_session)
-        db.commit()
-
+    if "session_id" in result:
         response.set_cookie(
             key="session_id",
-            value=session_id,
+            value=result.pop("session_id"),
             httponly=True,
             secure=False,
             samesite="lax",
             max_age=SESSION_EXPIRY_HOURS * 3600,
         )
-        return {"message": "Login exitoso", "auth_type": "cookie", "role": user.role}
 
-    token = create_jwt({"sub": user.id, "email": user.email, "role": user.role})
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "auth_type": "jwt",
-        "role": user.role,
-    }
+    return result
 
 
 @app.post("/api/logout")
-async def logout(
-    request: Request, response: Response, db: DBSession = Depends(get_db)
-):
-    session_id = request.cookies.get("session_id")
-    if session_id:
-        session = (
-            db.query(Session).filter(Session.session_id == session_id).first()
-        )
-        if session:
-            db.delete(session)
-            db.commit()
-
+async def logout(request: Request, response: Response, db=Depends(get_db)):
+    auth_service.logout(db, request.cookies.get("session_id"))
     response.delete_cookie("session_id")
     return {"message": "Sesion cerrada"}
 
 
-@app.get("/api/me", response_model=UserResponse)
-async def get_me(user: User = Depends(get_current_user)):
-    return user
+@app.get("/api/me")
+async def get_me(user=Depends(get_current_user)):
+    return UserResponse(**dict(user))
 
 
 @app.get("/api/admin/users")
-async def list_users(
-    user: User = Depends(require_role("admin")), db: DBSession = Depends(get_db)
-):
-    users = db.query(User).all()
-    return [
-        {
-            "id": u.id,
-            "email": u.email,
-            "role": u.role,
-            "is_active": u.is_active,
-            "created_at": u.created_at.isoformat() if u.created_at else None,
-        }
-        for u in users
-    ]
+async def list_users(user=Depends(require_role("admin")), db=Depends(get_db)):
+    return user_service.list_users(db)
 
 
 @app.delete("/api/admin/users/{user_id}")
 async def delete_user(
     user_id: int,
     request: Request,
-    user: User = Depends(require_role("admin")),
-    db: DBSession = Depends(get_db),
+    user=Depends(require_role("admin")),
+    db=Depends(get_db),
 ):
     verify_csrf(request)
-
-    if user_id == user.id:
-        raise HTTPException(
-            status_code=400, detail="No podes eliminarte a vos mismo"
-        )
-
-    target = db.query(User).filter(User.id == user_id).first()
-    if not target:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    db.delete(target)
-    db.commit()
-    return {"message": f"Usuario {target.email} eliminado"}
+    return user_service.delete_user(db, user_id, user["id"])
 
 
 @app.get("/api/admin/login-attempts")
 async def get_login_attempts(
-    user: User = Depends(require_role("admin")), db: DBSession = Depends(get_db)
+    user=Depends(require_role("admin")), db=Depends(get_db)
 ):
-    attempts = (
-        db.query(LoginAttempt)
-        .order_by(LoginAttempt.timestamp.desc())
-        .limit(100)
-        .all()
-    )
-    return [
-        {
-            "id": a.id,
-            "email": a.email,
-            "ip_address": a.ip_address,
-            "success": a.success,
-            "timestamp": a.timestamp.isoformat() if a.timestamp else None,
-        }
-        for a in attempts
-    ]
+    return user_service.get_login_attempts(db)
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
