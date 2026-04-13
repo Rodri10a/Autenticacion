@@ -12,6 +12,16 @@
     <a href="/" class="navbar-brand">DevLearn Hub</a>
     <div class="navbar-links">
       <a href="/">Inicio</a>
+      <% if (user) { %>
+        <span style="color:#ccc; margin-left:1.5rem;"><%= user.email %> (<%= user.role %>)</span>
+        <% if (user.role === 'admin') { %><a href="/admin">Admin</a><% } %>
+        <form action="/logout" method="POST" class="inline" style="display:inline; margin-left:1.5rem;">
+          <button type="submit" class="btn btn-delete">Salir</button>
+        </form>
+      <% } else { %>
+        <a href="/login">Login</a>
+        <a href="/signup">Registro</a>
+      <% } %>
     </div>
   </nav>
 

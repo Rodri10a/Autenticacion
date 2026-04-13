@@ -1,0 +1,29 @@
+<%- include('partials/header') %>
+
+<h1 class="page-title">Panel de Admin</h1>
+<p class="page-subtitle">Ultimos 50 intentos de inicio de sesion</p>
+
+<div class="card">
+  <table style="width:100%; border-collapse:collapse;">
+    <thead>
+      <tr style="text-align:left; border-bottom:2px solid #1a1a2e;">
+        <th style="padding:0.5rem;">Email</th>
+        <th style="padding:0.5rem;">Resultado</th>
+        <th style="padding:0.5rem;">Fecha</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% attempts.forEach(a => { %>
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:0.5rem;"><%= a.email %></td>
+          <td style="padding:0.5rem; color:<%= a.success ? '#27ae60' : '#e74c3c' %>;">
+            <%= a.success ? 'Exitoso' : 'Fallido' %>
+          </td>
+          <td style="padding:0.5rem;"><%= a.attempted_at %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('partials/footer') %>

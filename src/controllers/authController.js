@@ -44,4 +44,9 @@ const logout = (req, res) => {
   res.redirect('/login')
 }
 
-module.exports = { JWT_SECRET, showLogin, showSignup, signup, login, logout }
+const showAdmin = async (req, res) => {
+  const { rows } = await pool.query('SELECT email, success, attempted_at FROM login_attempts ORDER BY attempted_at DESC LIMIT 50')
+  res.render('admin', { attempts: rows })
+}
+
+module.exports = { JWT_SECRET, showLogin, showSignup, signup, login, logout, showAdmin }
