@@ -17,6 +17,20 @@ CREATE TABLE links (
   votes INTEGER DEFAULT 0
 );
 
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(20) NOT NULL DEFAULT 'user'
+);
+
+CREATE TABLE login_attempts (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  success BOOLEAN NOT NULL,
+  attempted_at TIMESTAMP DEFAULT NOW()
+);
+
 INSERT INTO topics (title, description, votes) VALUES
   ('JavaScript', 'Lenguaje de programacion de la web', 7),
   ('Node.js', 'JavaScript del lado del servidor', 4),
