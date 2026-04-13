@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-const pool = require('../models/db')
+const db = require('../models/db')
 
 const JWT_SECRET = 'super-secret-jwt-change-in-prod'
 
@@ -11,9 +11,9 @@ const signup = async (req, res) => {
   const { email, password } = req.body
   try {
     const hash = await bcrypt.hash(password, 10)
-    const { rows: [{ count }] } = await pool.query('SELECT COUNT(*)::int FROM users')
+    const { c: count } = db.prepare('SELECT COUNT(*) AS c FROM users').get()
     const role = count === 0 ? 'admin' : 'user'
-    await pool.query('INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3)', [email, hash, role])
+    db.prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)').run(email, hash, role)
     res.redirect('/login')
   } catch (e) {
     res.render('signup', { error: 'Email ya registrado o invalido' })
@@ -22,9 +22,9 @@ const signup = async (req, res) => {
 
 const login = async (req, res) => {
   const { email, password, mode } = req.body
-  const { rows: [user] } = await pool.query('SELECT * FROM users WHERE email = $1', [email])
+  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email)
   const ok = user && await bcrypt.compare(password, user.password_hash)
-  await pool.query('INSERT INTO login_attempts (email, success) VALUES ($1, $2)', [email, !!ok])
+  db.prepare('INSERT INTO login_attempts (email, success) VALUES (?, ?)').run(email, ok ? 1 : 0)
   if (!ok) return res.render('login', { error: 'Credenciales invalidas' })
 
   const payload = { id: user.id, email: user.email, role: user.role }
@@ -44,9 +44,9 @@ const logout = (req, res) => {
   res.redirect('/login')
 }
 
-const showAdmin = async (req, res) => {
-  const { rows } = await pool.query('SELECT email, success, attempted_at FROM login_attempts ORDER BY attempted_at DESC LIMIT 50')
-  res.render('admin', { attempts: rows })
+const showAdmin = (req, res) => {
+  const attempts = db.prepare('SELECT email, success, attempted_at FROM login_attempts ORDER BY attempted_at DESC LIMIT 50').all()
+  res.render('admin', { attempts })
 }
 
 module.exports = { JWT_SECRET, showLogin, showSignup, signup, login, logout, showAdmin }
