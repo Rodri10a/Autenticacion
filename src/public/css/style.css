@@ -1,0 +1,187 @@
+/* Estilos principales de la aplicacion DevLearn Hub */
+/* Reset basico para quitar margenes y paddings por defecto */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Estilos generales del body */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+/* Contenedor principal centrado con ancho maximo */
+.container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+/* Estilos de la navbar */
+.navbar {
+  background-color: #1a1a2e;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Logo de la navbar */
+.navbar-brand {
+  color: white;
+  text-decoration: none;
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+/* Links de la navbar */
+.navbar-links a {
+  color: #ccc;
+  text-decoration: none;
+  margin-left: 1.5rem;
+}
+
+.navbar-links a:hover {
+  color: white;
+}
+
+/* Card de cada topic */
+.card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Encabezado de la card con titulo y acciones */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.card-header h2 a {
+  text-decoration: none;
+  color: #1a1a2e;
+}
+
+/* Seccion de votaciones */
+.vote-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* Contador de votos */
+.vote-count {
+  font-weight: bold;
+  color: #555;
+}
+
+/* Card de cada link */
+.link-card {
+  background: #f9f9f9;
+  border-left: 3px solid #4a90e2;
+  padding: 1rem;
+  margin-bottom: 0.8rem;
+  border-radius: 0 8px 8px 0;
+}
+
+/* Estilos generales de botones */
+.btn {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.85rem;
+  display: inline-block;
+}
+
+/* Boton primario azul */
+.btn-primary {
+  background-color: #4a90e2;
+  color: white;
+}
+
+/* Boton de votar verde */
+.btn-vote {
+  background-color: #27ae60;
+  color: white;
+}
+
+.btn-vote:hover {
+  background-color: #219a52;
+}
+
+/* Boton de editar amarillo */
+.btn-edit {
+  background-color: #f39c12;
+  color: white;
+}
+
+/* Boton de eliminar rojo */
+.btn-delete {
+  background-color: #e74c3c;
+  color: white;
+}
+
+/* Estilos del formulario */
+.form-container {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: bold;
+}
+
+/* Inputs y textareas con ancho completo */
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-group textarea {
+  height: 100px;
+  resize: vertical;
+}
+
+/* Separador horizontal */
+hr {
+  margin: 1.5rem 0;
+  border: none;
+  border-top: 1px solid #eee;
+}
+
+/* Utilidades */
+.hidden { display: none; }
+.inline { display: inline; }
+.mt { margin-top: 1rem; }
+
+.page-title { margin-bottom: 0.5rem; }
+.page-subtitle { margin-bottom: 1rem; }
+
+.form-inline {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}

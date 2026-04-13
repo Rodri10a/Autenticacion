@@ -1,137 +1,118 @@
-# PassPort Auth
+# DevLearn Hub
 
-Sistema de autenticacion y gestion de sesiones para PassPort Inc., una plataforma de gestion de identidad digital.
+Aplicacion web para gestionar topics de tecnologias de programacion con recursos y sistema de votaciones en tiempo real.
 
-## Estructura del proyecto
+## Tech Stack
+
+- **Node.js** + **Express** - Servidor web
+- **PostgreSQL** + **pg** - Base de datos
+- **EJS** - Motor de plantillas
+- **Nodemon** - Recarga automatica en desarrollo
+
+## Estructura del Proyecto
 
 ```
-passport-auth/
-├── main.py           # App FastAPI, rutas y endpoints
-├── models.py         # Modelos SQLAlchemy (User, Session, LoginAttempt)
-├── schemas.py        # Validacion Pydantic con sanitizacion XSS
-├── auth.py           # Hashing bcrypt, JWT, dependencies de autenticacion
-├── middleware.py      # Proteccion CSRF y rate limiting
-├── database.py       # Conexion SQLite con SQLAlchemy
-├── requirements.txt   # Dependencias del proyecto
-├── .env              # Variables de entorno (SECRET_KEY)
-└── static/
-    ├── styles.css     # Estilos con tema oscuro
-    ├── index.html     # Pagina de login
-    ├── signup.html    # Pagina de registro
-    ├── dashboard.html # Dashboard del usuario
-    └── admin.html     # Panel de administracion
+CRUD/
+├── app.js                        # Punto de entrada del servidor
+├── src/
+│   ├── controllers/controller.js # Logica de negocio (CRUD + votos)
+│   ├── models/
+│   │   ├── db.js                 # Conexion a PostgreSQL
+│   │   └── init.sql              # Schema y datos iniciales
+│   ├── routes/routes.js          # Definicion de rutas
+│   ├── views/
+│   │   ├── index.ejs             # Vista principal
+│   │   └── partials/             # Header y footer
+│   └── public/
+│       ├── css/style.css         # Estilos
+│       └── js/main.js            # Votaciones con fetch
+└── package.json
 ```
 
 ## Instalacion
 
+1. Clonar el repositorio:
+
 ```bash
-# Clonar el repositorio
-git clone https://github.com/Rodri10a/Autenticacion.git
-cd Autenticacion
-
-# Crear entorno virtual
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate     # Windows
-
-# Instalar dependencias
-pip install -r requirements.txt
-
-# Crear archivo .env
-echo "SECRET_KEY=tu-clave-secreta-aqui" > .env
-
-# Iniciar el servidor
-uvicorn main:app --reload
+git clone <url-del-repo>
+cd CRUD
 ```
 
-La app corre en `http://localhost:8000`
+2. Instalar dependencias:
 
-## Credenciales por defecto
+```bash
+npm install
+```
 
-Al iniciar por primera vez se crea un usuario admin:
+3. Crear la base de datos en PostgreSQL:
 
-- **Email:** admin@passport.com
-- **Password:** Admin123!
+```sql
+CREATE DATABASE devlearn_hub;
+```
 
-## Endpoints de la API
+4. Ejecutar el script de inicializacion:
 
-### Autenticacion
+```bash
+psql -U postgres -d devlearn_hub -f src/models/init.sql
+```
 
-| Metodo | Ruta | Descripcion |
-|--------|------|-------------|
-| POST | `/api/signup` | Registrar nuevo usuario |
-| POST | `/api/login` | Iniciar sesion (cookie o JWT) |
-| POST | `/api/logout` | Cerrar sesion |
-| GET | `/api/me` | Obtener datos del usuario actual |
-| GET | `/api/csrf-token` | Obtener token CSRF |
+5. Configurar la conexion en `src/models/db.js` si es necesario (usuario, password, host, puerto).
 
-### Administracion (solo rol admin)
+6. Iniciar el servidor:
 
-| Metodo | Ruta | Descripcion |
-|--------|------|-------------|
-| GET | `/api/admin/users` | Listar todos los usuarios |
-| DELETE | `/api/admin/users/{id}` | Eliminar un usuario |
-| GET | `/api/admin/login-attempts` | Ver intentos de login |
+```bash
+# Desarrollo (con recarga automatica)
+npm run dev
 
-## Gestion de sesiones
+# Produccion
+npm start
+```
 
-El sistema soporta dos tipos de sesion que el usuario elige al hacer login:
+La app estara disponible en `http://localhost:3000`.
 
-### Sesiones con cookies (persistentes)
+## Base de Datos
 
-1. El usuario hace login y el servidor crea un registro `Session` en la base de datos
-2. Se envia una cookie `session_id` con flags `HttpOnly`, `Secure` y `SameSite=Lax`
-3. En cada request, el navegador envia la cookie automaticamente
-4. El servidor busca la sesion en la DB y valida que no haya expirado
-5. Al hacer logout, se elimina la sesion de la DB y se borra la cookie
+Dos tablas con relacion uno a muchos:
 
-### Sesiones con JWT (stateless)
+**topics** - Tecnologias de programacion
+| Campo       | Tipo         |
+|-------------|--------------|
+| id          | SERIAL PK    |
+| title       | VARCHAR(255) |
+| description | TEXT         |
+| votes       | INTEGER      |
 
-1. El usuario hace login y el servidor genera un JWT firmado con HS256
-2. El token contiene: `sub` (user_id), `email`, `role` y `exp` (expiracion)
-3. El frontend almacena el token en `localStorage`
-4. En cada request, el frontend envia el token en el header `Authorization: Bearer <token>`
-5. El servidor decodifica y valida el token sin consultar la DB
-6. Al hacer logout, el frontend simplemente elimina el token
+**links** - Recursos asociados a cada topic
+| Campo    | Tipo         |
+|----------|--------------|
+| id       | SERIAL PK    |
+| topic_id | FK → topics  |
+| title    | VARCHAR(255) |
+| url      | TEXT         |
+| votes    | INTEGER      |
 
-## Control de acceso (RBAC)
+## Rutas
 
-Dos roles definidos:
+### Topics
+| Metodo | Ruta                  | Accion              |
+|--------|-----------------------|----------------------|
+| GET    | `/`                   | Listar todos         |
+| POST   | `/topics`             | Crear topic          |
+| POST   | `/topics/:id/update`  | Actualizar topic     |
+| POST   | `/topics/:id/delete`  | Eliminar topic       |
+| POST   | `/topics/:id/vote`    | Votar (AJAX → JSON)  |
 
-- **user**: Acceso a su propio dashboard y datos personales
-- **admin**: Acceso adicional a gestion de usuarios y logs de seguridad
+### Links
+| Metodo | Ruta                                | Accion              |
+|--------|-------------------------------------|----------------------|
+| POST   | `/topics/:id/links`                 | Agregar link         |
+| POST   | `/topics/:id/links/:linkId/update`  | Actualizar link      |
+| POST   | `/topics/:id/links/:linkId/delete`  | Eliminar link        |
+| POST   | `/topics/:id/links/:linkId/vote`    | Votar (AJAX → JSON)  |
 
-La dependency `require_role("admin")` protege los endpoints administrativos.
+## Funcionalidades
 
-## Seguridad implementada
-
-### Hashing de contrasenas
-Las contrasenas se hashean con **bcrypt** a traves de `passlib`. El hash es irreversible: ni siquiera con acceso a la base de datos se pueden recuperar las contrasenas originales.
-
-### Proteccion CSRF
-Se implementa el patron **double-submit cookie**:
-1. `GET /api/csrf-token` genera un token random y lo setea como cookie (legible por JS)
-2. El frontend lee la cookie y envia el mismo valor en el header `X-CSRF-Token`
-3. El servidor compara ambos valores con `secrets.compare_digest`
-
-### Prevencion de XSS
-- Los inputs del usuario se sanitizan con `bleach.clean()` en el backend
-- El frontend usa `textContent` en lugar de `innerHTML` para renderizar datos
-
-### Rate limiting (fuerza bruta)
-- Maximo 5 intentos fallidos de login por IP
-- Bloqueo temporal de 15 minutos despues de exceder el limite
-- El contador se resetea tras un login exitoso
-
-### Cookies seguras
-- `HttpOnly=True`: JavaScript no puede leer la cookie de sesion
-- `SameSite=Lax`: Proteccion contra CSRF a nivel de navegador
-- `Secure`: Solo se transmite por HTTPS (configurar en produccion)
-
-## Stack tecnologico
-
-- **Backend:** FastAPI + SQLAlchemy + SQLite
-- **Autenticacion:** passlib (bcrypt) + python-jose (JWT)
-- **Validacion:** Pydantic v2 con email-validator
-- **Seguridad:** bleach (XSS), secrets (CSRF)
-- **Frontend:** HTML + CSS + JavaScript vanilla
+- **CRUD completo** de topics y links con formularios inline
+- **Votaciones en tiempo real** sin recargar la pagina (fetch + JSON)
+- **Interfaz responsiva** con cards, navbar y botones con colores por accion
+- **Eliminacion en cascada** - al borrar un topic se borran sus links

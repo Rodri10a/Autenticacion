@@ -1,0 +1,91 @@
+<%- include('partials/header') %>
+
+<h1 class="page-title">Tecnologias de Programacion</h1>
+<p class="page-subtitle">Vota por las tecnologias que mas te gustan</p>
+
+<button class="btn btn-primary" onclick="toggleForm('create-form')">+ Nuevo Topic</button>
+
+<div id="create-form" class="form-container hidden mt">
+  <h2>Nuevo Topic</h2>
+  <form action="/topics" method="POST" class="form">
+    <div class="form-group">
+      <label>Titulo</label>
+      <input type="text" name="title" placeholder="Ej: JavaScript" required>
+    </div>
+    <div class="form-group">
+      <label>Descripcion</label>
+      <textarea name="description" placeholder="Describe esta tecnologia..." required></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Crear Topic</button>
+    <button type="button" class="btn" onclick="toggleForm('create-form')">Cancelar</button>
+  </form>
+</div>
+
+<% topics.forEach(topic => { %>
+<% let id = topic.id %>
+  <div class="card">
+    <div class="card-header">
+      <h2><a href="#" onclick="toggleForm('detail-<%= id %>'); return false;"><%= topic.title %></a></h2>
+      <div class="card-actions">
+        <button class="btn btn-edit" onclick="toggleForm('edit-<%= id %>')">Editar</button>
+        <form action="/topics/<%= id %>/delete" method="POST" class="inline">
+          <button type="submit" class="btn btn-delete">Eliminar</button>
+        </form>
+      </div>
+    </div>
+
+    <p><%= topic.description %></p>
+
+    <div class="vote-section">
+      <button class="btn btn-vote vote-topic-btn" data-id="<%= id %>">Votar</button>
+      <span id="votes-<%= id %>" class="vote-count"><%= topic.votes %> votos</span>
+    </div>
+
+    <div id="edit-<%= id %>" class="form-container hidden mt">
+      <h3>Editar Topic</h3>
+      <form action="/topics/<%= id %>/update" method="POST" class="form">
+        <div class="form-group">
+          <label>Titulo</label>
+          <input type="text" name="title" value="<%= topic.title %>" required>
+        </div>
+        <div class="form-group">
+          <label>Descripcion</label>
+          <textarea name="description" required><%= topic.description %></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <button type="button" class="btn" onclick="toggleForm('edit-<%= id %>')">Cancelar</button>
+      </form>
+    </div>
+
+    <div id="detail-<%= id %>" class="hidden mt">
+      <hr>
+      <h3>Agregar recurso</h3>
+      <form action="/topics/<%= id %>/links" method="POST" class="form form-inline">
+        <input type="text" name="title" placeholder="Nombre del recurso" required>
+        <input type="url" name="url" placeholder="https://..." required>
+        <button type="submit" class="btn btn-primary">Agregar</button>
+      </form>
+
+      <h3 class="mt">Recursos (<%= topic.links.length %>)</h3>
+      <% topic.links.forEach(link => { %>
+        <div class="link-card">
+          <a href="<%= link.url %>" target="_blank"><%= link.title %></a>
+          <div class="link-actions">
+            <button class="btn btn-vote vote-link-btn" data-topic-id="<%= id %>" data-link-id="<%= link.id %>">Votar</button>
+            <span id="link-votes-<%= link.id %>" class="vote-count"><%= link.votes %> votos</span>
+            <form action="/topics/<%= id %>/links/<%= link.id %>/update" method="POST" class="inline">
+              <input type="text" name="title" value="<%= link.title %>" required>
+              <input type="url" name="url" value="<%= link.url %>" required>
+              <button type="submit" class="btn btn-edit">Actualizar</button>
+            </form>
+            <form action="/topics/<%= id %>/links/<%= link.id %>/delete" method="POST" class="inline">
+              <button type="submit" class="btn btn-delete">Eliminar</button>
+            </form>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+<% }) %>
+
+<%- include('partials/footer') %>
