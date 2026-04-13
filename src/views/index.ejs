@@ -8,6 +8,7 @@
 <div id="create-form" class="form-container hidden mt">
   <h2>Nuevo Topic</h2>
   <form action="/topics" method="POST" class="form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <div class="form-group">
       <label>Titulo</label>
       <input type="text" name="title" placeholder="Ej: JavaScript" required>
@@ -29,6 +30,7 @@
       <div class="card-actions">
         <button class="btn btn-edit" onclick="toggleForm('edit-<%= id %>')">Editar</button>
         <form action="/topics/<%= id %>/delete" method="POST" class="inline">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button type="submit" class="btn btn-delete">Eliminar</button>
         </form>
       </div>
@@ -44,6 +46,7 @@
     <div id="edit-<%= id %>" class="form-container hidden mt">
       <h3>Editar Topic</h3>
       <form action="/topics/<%= id %>/update" method="POST" class="form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="form-group">
           <label>Titulo</label>
           <input type="text" name="title" value="<%= topic.title %>" required>
@@ -61,6 +64,7 @@
       <hr>
       <h3>Agregar recurso</h3>
       <form action="/topics/<%= id %>/links" method="POST" class="form form-inline">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="text" name="title" placeholder="Nombre del recurso" required>
         <input type="url" name="url" placeholder="https://..." required>
         <button type="submit" class="btn btn-primary">Agregar</button>
@@ -74,11 +78,13 @@
             <button class="btn btn-vote vote-link-btn" data-topic-id="<%= id %>" data-link-id="<%= link.id %>">Votar</button>
             <span id="link-votes-<%= link.id %>" class="vote-count"><%= link.votes %> votos</span>
             <form action="/topics/<%= id %>/links/<%= link.id %>/update" method="POST" class="inline">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <input type="text" name="title" value="<%= link.title %>" required>
               <input type="url" name="url" value="<%= link.url %>" required>
               <button type="submit" class="btn btn-edit">Actualizar</button>
             </form>
             <form action="/topics/<%= id %>/links/<%= link.id %>/delete" method="POST" class="inline">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <button type="submit" class="btn btn-delete">Eliminar</button>
             </form>
           </div>

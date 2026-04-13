@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="<%= csrfToken %>">
   <title>DevLearn Hub</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -16,6 +17,7 @@
         <span style="color:#ccc; margin-left:1.5rem;"><%= user.email %> (<%= user.role %>)</span>
         <% if (user.role === 'admin') { %><a href="/admin">Admin</a><% } %>
         <form action="/logout" method="POST" class="inline" style="display:inline; margin-left:1.5rem;">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button type="submit" class="btn btn-delete">Salir</button>
         </form>
       <% } else { %>
