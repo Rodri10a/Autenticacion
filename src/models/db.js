@@ -36,17 +36,4 @@ db.exec(`
   );
 `)
 
-const count = db.prepare('SELECT COUNT(*) AS c FROM topics').get().c
-if (count === 0) {
-  const insertTopic = db.prepare('INSERT INTO topics (title, description, votes) VALUES (?, ?, ?)')
-  insertTopic.run('JavaScript', 'Lenguaje de programacion de la web', 7)
-  insertTopic.run('Node.js', 'JavaScript del lado del servidor', 4)
-  insertTopic.run('Python', 'Lenguaje versatil para backend y data science', 1)
-
-  const insertLink = db.prepare('INSERT INTO links (topic_id, title, url, votes) VALUES (?, ?, ?, ?)')
-  insertLink.run(1, 'MDN Web Docs', 'https://developer.mozilla.org', 3)
-  insertLink.run(1, 'JavaScript.info', 'https://javascript.info', 5)
-  insertLink.run(2, 'Documentacion oficial', 'https://nodejs.org/docs', 2)
-}
-
 module.exports = db
