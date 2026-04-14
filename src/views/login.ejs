@@ -1,11 +1,16 @@
+<%# Vista del formulario de login %>
 <%- include('partials/header') %>
 
 <h1 class="page-title">Iniciar sesion</h1>
+
+<%# Si el controller paso un error, lo mostramos en rojo %>
 <% if (error) { %><p style="color:#e74c3c"><%= error %></p><% } %>
 
 <div class="form-container">
   <form action="/login" method="POST" class="form">
+    <%# Token CSRF oculto: sin este input el POST sera rechazado con 403 %>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
     <div class="form-group">
       <label>Email</label>
       <input type="email" name="email" required>
@@ -14,6 +19,8 @@
       <label>Contraseña</label>
       <input type="password" name="password" required>
     </div>
+
+    <%# Selector de estrategia: sesion con cookie o JWT stateless %>
     <div class="form-group">
       <label>Tipo de sesion</label>
       <select name="mode">
@@ -21,6 +28,7 @@
         <option value="jwt">JWT (sin estado)</option>
       </select>
     </div>
+
     <button type="submit" class="btn btn-primary">Entrar</button>
     <a href="/signup" class="btn">Crear cuenta</a>
   </form>

@@ -1,7 +1,12 @@
+<%# Vista protegida: solo accesible si requireLogin pasa en la ruta "/" %>
 <%- include('partials/header') %>
 
 <h1 class="page-title">Bienvenido</h1>
+
+<%# user viene del middleware attachUser (res.locals.user) %>
 <p>Estas autenticado como <strong><%= user.email %></strong>.</p>
+
+<%# authMethod indica si entro por cookie de sesion o por JWT %>
 <p>Sesion iniciada con <strong><%= authMethod === 'jwt' ? 'JWT (cookie firmada)' : 'cookies de sesion' %></strong>.</p>
 
 <%- include('partials/footer') %>

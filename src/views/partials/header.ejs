@@ -1,3 +1,4 @@
+<%# Header compartido por todas las vistas %>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -11,13 +12,16 @@
   <nav class="navbar">
     <a href="/" class="navbar-brand">Auth</a>
     <div class="navbar-links">
+      <%# Si hay usuario logueado muestra email + boton salir %>
       <% if (user) { %>
         <span style="color:#ccc; margin-left:1.5rem;"><%= user.email %></span>
+        <%# Logout es POST para que el middleware CSRF valide el token %>
         <form action="/logout" method="POST" class="inline" style="display:inline; margin-left:1.5rem;">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <button type="submit" class="btn btn-delete">Salir</button>
         </form>
       <% } else { %>
+        <%# Sin login: muestra links a login y signup %>
         <a href="/login">Login</a>
         <a href="/signup">Registro</a>
       <% } %>
