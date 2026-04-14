@@ -20,9 +20,4 @@ const requireLogin = (req, res, next) => {
   next()
 }
 
-const requireRole = (role) => (req, res, next) => {
-  if (req.user?.role !== role) return res.status(403).send('Acceso denegado')
-  next()
-}
-
-module.exports = { attachUser, requireLogin, requireRole }
+module.exports = { attachUser, requireLogin }

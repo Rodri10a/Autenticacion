@@ -6,7 +6,6 @@ const csrf = require('csurf')
 const helmet = require('helmet')
 
 const app = express()
-const routes = require('./src/routes/routes')
 const authRoutes = require('./src/routes/authRoutes')
 const { attachUser } = require('./src/middlewares/auth')
 
@@ -14,7 +13,6 @@ app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, 'src/views'))
 
 app.use(helmet({ contentSecurityPolicy: false }))
-app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(express.static(path.join(__dirname, 'src/public')))
 app.use(cookieParser())
@@ -32,7 +30,6 @@ app.use((req, res, next) => {
 })
 
 app.use('/', authRoutes)
-app.use('/', routes)
 
 app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') return res.status(403).send('Token CSRF invalido')
