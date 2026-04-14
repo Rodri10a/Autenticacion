@@ -2,8 +2,6 @@ const Database = require('better-sqlite3')
 const path = require('path')
 
 const db = new Database(path.join(__dirname, '../../data.db'))
-// consulta parametros del motor interno de SQLite
-db.pragma('journal_mode = WAL')
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
