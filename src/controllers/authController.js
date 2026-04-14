@@ -45,9 +45,6 @@ const login = async (req, res) => {
   // Devuelve true/false (ademas es timing-safe, previene ataques de timing)
   const ok = user && await bcrypt.compare(password, user.password_hash)
 
-  // Audit log: guarda el intento (exitoso o fallido) para poder verlo con `npm run logs`
-  db.prepare('INSERT INTO login_attempts (email, success) VALUES (?, ?)').run(email, ok ? 1 : 0)
-
   // Si no coincide, vuelve al login con mensaje de error
   if (!ok) return res.render('login', { error: 'Credenciales invalidas' })
 
