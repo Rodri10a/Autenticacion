@@ -14,7 +14,8 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,       -- email debe ser unico, lanza error si se duplica
-    password_hash TEXT NOT NULL       -- hash bcrypt (nunca texto plano)
+    password_hash TEXT NOT NULL,      -- hash bcrypt (nunca texto plano)
+    role TEXT NOT NULL DEFAULT 'user' -- 'user' o 'admin'
   );
 
   CREATE TABLE IF NOT EXISTS login_attempts (
@@ -24,5 +25,11 @@ db.exec(`
     attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `)
+
+// Migracion: agrega columna role si la tabla ya existia sin ella
+const columns = db.pragma('table_info(users)')
+if (!columns.some(c => c.name === 'role')) {
+  db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+}
 
 module.exports = db

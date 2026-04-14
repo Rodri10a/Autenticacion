@@ -1,13 +1,16 @@
 <%# Vista del formulario de login %>
+
 <%- include('partials/header') %>
 
 <h1 class="page-title">Iniciar sesion</h1>
 
 <%# Si el controller paso un error, lo mostramos en rojo %>
+
 <% if (error) { %><p style="color:#e74c3c"><%= error %></p><% } %>
 
 <div class="form-container">
   <form action="/login" method="POST" class="form">
+
     <%# Token CSRF oculto: sin este input el POST sera rechazado con 403 %>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
@@ -15,6 +18,7 @@
       <label>Email</label>
       <input type="email" name="email" required>
     </div>
+    
     <div class="form-group">
       <label>Contraseña</label>
       <input type="password" name="password" required>

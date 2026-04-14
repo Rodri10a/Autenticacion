@@ -43,7 +43,7 @@ app.use(session({
   saveUninitialized: false,                   // no crea sesion vacia hasta que haya datos
   cookie: {
     httpOnly: true,        // JS del navegador NO puede leerla  → protege XSS
-    secure: false,         // true en produccion con HTTPS
+    secure: process.env.NODE_ENV === 'production',  // true solo con HTTPS en produccion
     sameSite: 'strict',    // solo se envia en requests del mismo origen → protege CSRF
     maxAge: 24 * 60 * 60 * 1000  // 1 dia en milisegundos
   }

@@ -1,0 +1,30 @@
+<%# Vista del panel de administracion (solo admins) %>
+
+<%- include('partials/header') %>
+
+<h1 class="page-title">Panel de administracion</h1>
+
+<table style="width:100%; border-collapse:collapse; margin-top:1rem;">
+  <thead>
+    <tr style="border-bottom:2px solid #444; text-align:left;">
+      <th style="padding:0.5rem;">ID</th>
+      <th style="padding:0.5rem;">Email</th>
+      <th style="padding:0.5rem;">Rol</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% users.forEach(u => { %>
+      <tr style="border-bottom:1px solid #333;">
+        <td style="padding:0.5rem;"><%= u.id %></td>
+        <td style="padding:0.5rem;"><%= u.email %></td>
+        <td style="padding:0.5rem;"><%= u.role %></td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+
+<a href="/" class="btn" style="margin-top:1rem; display:inline-block;">Volver al dashboard</a>
+
+  </main>
+</body>
+</html>

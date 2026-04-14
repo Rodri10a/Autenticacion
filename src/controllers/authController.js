@@ -24,7 +24,8 @@ const signup = async (req, res) => {
     const hash = await bcrypt.hash(req.body.password, 10)
 
     // Guarda el usuario. Si el email ya existe, el UNIQUE lanza error y cae al catch
-    db.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)').run(req.body.email, hash)
+    const role = req.body.role === 'admin' ? 'admin' : 'user'
+    db.prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)').run(req.body.email, hash, role)
 
     res.redirect('/login')
   } catch {
@@ -49,7 +50,7 @@ const login = async (req, res) => {
   if (!ok) return res.render('login', { error: 'Credenciales invalidas' })
 
   // Payload = datos del user que viajaran en la sesion o dentro del token
-  const payload = { id: user.id, email: user.email }
+  const payload = { id: user.id, email: user.email, role: user.role }
 
   if (mode === 'jwt') {
     // OPCION B: JWT (stateless)
@@ -60,10 +61,13 @@ const login = async (req, res) => {
     // Manda el token al cliente en una cookie segura
     res.cookie('jwt', token, {
       httpOnly: true,        // el JS del navegador no la puede leer (anti XSS)
-      secure: false,         // true en produccion con HTTPS
-      sameSite: 'strict',    // no viaja en requests cross-origin (anti CSRF)
-      maxAge: 3600000        // 1 hora en ms
+      secure: process.env.NODE_ENV === 'production',  // true solo con HTTPS en produccion
+      sameSite: 'strict'     // no viaja en requests cross-origin (anti CSRF)
+      // Sin maxAge → "session cookie" del browser → se borra al cerrar el browser
     })
+
+    // Flag legible por JS para que el script detecte el inicio de sesion JWT
+    res.cookie('jwt_new', '1', { httpOnly: false, sameSite: 'strict' })
   } else {
     // OPCION A: Sesion del lado del server (stateful)
     // express-session guarda el payload en memoria y manda solo un ID firmado en connect.sid
@@ -81,9 +85,17 @@ const logout = (req, res) => {
 
   // Borra las dos cookies posibles (no sabemos cual estaba usando el usuario)
   res.clearCookie('jwt')
+  res.clearCookie('jwt_new')
   res.clearCookie('connect.sid')
 
   res.redirect('/login')
 }
 
-module.exports = { JWT_SECRET, showLogin, showSignup, showDashboard, signup, login, logout }
+// ─── ADMIN PANEL: lista de usuarios (solo accesible por admins) ───
+
+const showAdmin = (req, res) => {
+  const users = db.prepare('SELECT id, email, role FROM users').all()
+  res.render('admin', { users })
+}
+
+module.exports = { JWT_SECRET, showLogin, showSignup, showDashboard, showAdmin, signup, login, logout }

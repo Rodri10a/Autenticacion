@@ -9,6 +9,20 @@
 </head>
 <body>
 
+<% if (authMethod === 'jwt') { %>
+<script>
+  // Si recien se logueo con JWT, marcar la pestaña como activa
+  if (document.cookie.includes('jwt_new=1')) {
+    sessionStorage.setItem('jwt_active', '1');
+    document.cookie = 'jwt_new=; Max-Age=0; path=/';
+  }
+  // Si no hay marca, la pestaña fue cerrada y reabierta → logout
+  if (!sessionStorage.getItem('jwt_active')) {
+    window.location.href = '/jwt-expire';
+  }
+</script>
+<% } %>
+
   <nav class="navbar">
     <a href="/" class="navbar-brand">Auth</a>
     <div class="navbar-links">

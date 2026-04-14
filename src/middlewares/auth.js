@@ -26,6 +26,7 @@ const getUser = (req) => {
 // Popula req.user + res.locals.user para que vistas y rutas sepan quien esta logueado
 const attachUser = (req, res, next) => {
   const { user, method } = getUser(req)
+  if (user && !user.role) user.role = 'user'  // default para sesiones creadas antes de roles
   req.user = user                      // disponible en los handlers
   req.authMethod = method
   res.locals.user = user               // disponible en las vistas EJS como "user"
@@ -40,4 +41,11 @@ const requireLogin = (req, res, next) => {
   next()
 }
 
-module.exports = { attachUser, requireLogin }
+// requireRole: restringe acceso por rol
+// Uso: requireRole('admin') → solo deja pasar admins
+const requireRole = (...roles) => (req, res, next) => {
+  if (!roles.includes(req.user?.role)) return res.status(403).send('Acceso denegado')
+  next()
+}
+
+module.exports = { attachUser, requireLogin, requireRole }
