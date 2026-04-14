@@ -22,6 +22,7 @@ const login = async (req, res) => {
   const { email, password, mode } = req.body
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email)
   const ok = user && await bcrypt.compare(password, user.password_hash)
+  db.prepare('INSERT INTO login_attempts (email, success) VALUES (?, ?)').run(email, ok ? 1 : 0)
   if (!ok) return res.render('login', { error: 'Credenciales invalidas' })
 
   const payload = { id: user.id, email: user.email }

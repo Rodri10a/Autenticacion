@@ -2,16 +2,18 @@ const jwt = require('jsonwebtoken')
 const { JWT_SECRET } = require('../controllers/authController')
 
 const getUser = (req) => {
-  if (req.session?.user) return req.session.user
+  if (req.session?.user) return { user: req.session.user, method: 'session' }
   const token = req.cookies?.jwt
-  if (!token) return null
-  try { return jwt.verify(token, JWT_SECRET) } catch { return null }
+  if (!token) return { user: null, method: null }
+  try { return { user: jwt.verify(token, JWT_SECRET), method: 'jwt' } } catch { return { user: null, method: null } }
 }
 
 const attachUser = (req, res, next) => {
-  const user = getUser(req)
+  const { user, method } = getUser(req)
   req.user = user
+  req.authMethod = method
   res.locals.user = user
+  res.locals.authMethod = method
   next()
 }
 

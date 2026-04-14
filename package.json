@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "db": "node -e \"console.table(require('better-sqlite3')('data.db').prepare('SELECT id, email FROM users').all())\""
+    "db": "node -e \"console.table(require('better-sqlite3')('data.db').prepare('SELECT id, email FROM users').all())\"",
+    "logs": "node -e \"console.table(require('better-sqlite3')('data.db').prepare('SELECT id, email, success, attempted_at FROM login_attempts ORDER BY attempted_at DESC LIMIT 20').all())\""
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

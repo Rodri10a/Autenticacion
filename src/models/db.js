@@ -9,6 +9,13 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS login_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    success INTEGER NOT NULL,
+    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `)
 
 module.exports = db
