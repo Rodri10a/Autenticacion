@@ -4,7 +4,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "db": "node -e \"console.table(require('better-sqlite3')('data.db').prepare('SELECT id, email FROM users').all())\""
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
